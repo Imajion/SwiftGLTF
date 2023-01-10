@@ -18,8 +18,8 @@ extension GKBox {
 
 public class GltfNode : NSObject {
     
-    let node: Node
-    let entity: Entity
+    public let node: Node
+    public let entity: Entity
     
     public init(node: Node, entity: Entity) {
         self.node = node

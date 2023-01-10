@@ -30,11 +30,16 @@ public class RealityKitGLTFGenerator {
         return rootEntity
     }
 
-    func generateEntity(from node: Node) throws -> Entity {
+    func generateEntity(from node: Node, lazy: Bool = false) throws -> Entity {
         let entity = Entity()
 
         if let mesh = try node.mesh?.resolve(in: document) {
-            entity.components[ModelComponent.self] = try generateMeshResource(from: mesh)
+            
+            if (lazy) {
+                entity.components[ModelComponent.self] = try generatePlaceholder(from: mesh)
+            } else {
+                entity.components[ModelComponent.self] = try generateMeshResource(from: mesh)
+            }
         }
         if let matrix = node.matrix {
             entity.transform.matrix = matrix
@@ -48,12 +53,31 @@ public class RealityKitGLTFGenerator {
         if let scale = node.scale {
             entity.transform.scale = scale
         }
-        try node.children.map { try $0.resolve(in: document) }.map { try generateEntity(from: $0) }.forEach {
+        try node.children.map { try $0.resolve(in: document) }.map { try generateEntity(from: $0, lazy: lazy) }.forEach {
             entity.addChild($0)
         }
         return entity
     }
 
+    func generatePlaceholder(from mesh: Mesh) throws -> ModelComponent {
+        let primitive = mesh.primitives.first!
+        guard let accessor = try primitive.attributes[.POSITION]?.resolve(in: container.document) else {
+            fatalError()
+        }
+        
+        let min = simd_float3(x: accessor.min![0], y: accessor.min![1], z: accessor.min![2])
+        let max = simd_float3(x: accessor.max![0], y: accessor.max![1], z: accessor.max![2])
+        let size = max - min
+
+        let meshResource = MeshResource.generateBox(width: size.x, height: size.y, depth: size.z)
+
+        guard let material = try primitive.material?.resolve(in: document) else {
+            fatalError()
+        }
+        let reMaterial = try makeMaterial(from: material)
+        return ModelComponent(mesh: meshResource, materials: [reMaterial])
+    }
+    
     func generateMeshResource(from mesh: Mesh) throws -> ModelComponent {
         // assert(mesh.primitives.count == 1)
         let primitive = mesh.primitives.first!

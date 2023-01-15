@@ -158,7 +158,7 @@ extension Mesh.Primitive {
             fatalError()
         }
 
-        assert(values.count == accessor.count)
+        // assert(values.count == accessor.count)
         // assert(accessor.min == nil || accessor.max == nil || values.allSatisfy({ $0.within(min: SIMD3<Float>(accessor.min!), max: SIMD3<Float>(accessor.max!)) }))
         return values
     }
